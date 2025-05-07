@@ -1,7 +1,7 @@
 plugins {
     id("com.android.application")
     id("com.chaquo.python")
-
+    // id("kotlin-android") // если используете Kotlin
 }
 
 android {
@@ -58,31 +58,23 @@ dependencies {
     implementation("androidx.navigation:navigation-ui:2.7.5")
 }
 
-// --- Задача для переименования APK после сборки ---
-tasks.register<Copy>("renameApk") {
+// --- Задача для переименования release APK ---
+tasks.register<Copy>("renameReleaseApk") {
     val appName = "FITNESS"
     val versionName = android.defaultConfig.versionName ?: "1.0"
+    val buildType = "release"
 
-    val apkDir = layout.buildDirectory.dir("outputs/apk").get().asFile
+    val apkDir = layout.buildDirectory.dir("outputs/apk/$buildType").get().asFile
     val renamedDir = layout.buildDirectory.dir("outputs/renamedApk").get().asFile
 
     from(apkDir)
-    include("**/*.apk") // копируем все apk из outputs/apk (и release, debug и др.)
-
+    include("app-$buildType-unsigned.apk", "app-$buildType.apk") // копируем signed и unsigned, если есть
     into(renamedDir)
-
-    rename { fileName ->
-        // Пример переименования: FITNESS-release-v1.0.apk
-        val buildType = when {
-            fileName.contains("release") -> "release"
-            fileName.contains("debug") -> "debug"
-            else -> "unknown"
-        }
+    rename { originalName ->
+        // Переименовываем в FITNESS-release-v1.0.apk, убираем -unsigned если есть
+        val cleanName = originalName.removeSuffix("-unsigned.apk").removeSuffix(".apk")
         "$appName-$buildType-v$versionName.apk"
     }
 }
 
-// Запускаем задачу переименования после сборки assemble (включая release и debug)
-tasks.named("assemble") {
-    finalizedBy("renameApk")
-}
+// --- З
