@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("com.chaquo.python")
+
 }
 
 android {
@@ -27,6 +28,9 @@ android {
                 "proguard-rules.pro"
             )
         }
+        debug {
+            // Можно добавить настройки для debug, если нужно
+        }
     }
 
     compileOptions {
@@ -52,4 +56,33 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     implementation("androidx.navigation:navigation-fragment:2.7.5")
     implementation("androidx.navigation:navigation-ui:2.7.5")
+}
+
+// --- Задача для переименования APK после сборки ---
+tasks.register<Copy>("renameApk") {
+    val appName = "FITNESS"
+    val versionName = android.defaultConfig.versionName ?: "1.0"
+
+    val apkDir = layout.buildDirectory.dir("outputs/apk").get().asFile
+    val renamedDir = layout.buildDirectory.dir("outputs/renamedApk").get().asFile
+
+    from(apkDir)
+    include("**/*.apk") // копируем все apk из outputs/apk (и release, debug и др.)
+
+    into(renamedDir)
+
+    rename { fileName ->
+        // Пример переименования: FITNESS-release-v1.0.apk
+        val buildType = when {
+            fileName.contains("release") -> "release"
+            fileName.contains("debug") -> "debug"
+            else -> "unknown"
+        }
+        "$appName-$buildType-v$versionName.apk"
+    }
+}
+
+// Запускаем задачу переименования после сборки assemble (включая release и debug)
+tasks.named("assemble") {
+    finalizedBy("renameApk")
 }
